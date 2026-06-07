@@ -19,7 +19,7 @@ from livekit.agents import (
     inference,
     room_io,
 )
-from livekit.plugins import ai_coustics, silero
+from livekit.plugins import ai_coustics, openai, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 from moss import DocumentInfo, MossClient, QueryOptions
 
@@ -47,10 +47,15 @@ class Assistant(Agent):
 
     def __init__(self, *, room=None, user_id: str = DEFAULT_USER_ID) -> None:
         super().__init__(
-            # The LLM (the agent's brain) runs on LiveKit Inference — no
-            # provider API key required. STT/TTS are configured on the
-            # AgentSession below. See https://docs.livekit.io/agents/models/llm/
-            llm=inference.LLM(model="openai/gpt-5.2-chat-latest"),
+            # The LLM (the agent's brain) routes through the TrueFoundry AI
+            # Gateway using LiveKit's OpenAI-compatible plugin. STT/TTS are
+            # configured on the AgentSession below.
+            llm=openai.LLM(
+                model=os.getenv("TRUEFOUNDRY_MODEL_ID", "openai-main/gpt-4o"),
+                api_key=os.getenv("OPENAI_API_KEY"),
+                base_url=os.getenv("TRUEFOUNDRY_BASE_URL"),
+                temperature=0.7,
+            ),
             instructions=textwrap.dedent(
                 """\
                 You are Mission Bay, a realtime mission-awareness copilot for
