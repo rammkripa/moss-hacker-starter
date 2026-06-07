@@ -1,47 +1,77 @@
 [
   {
-    "id": "mission-plan-overview",
-    "text": "Mission Bay static context: Operation Checkpoint Echo. Team Alpha must reach Checkpoint Echo in Sector E9 by 14:30. The original mission plan marked Route A through Sector B7 as the planned low-risk route. Mission Bay is a situational-awareness and decision-support copilot; it must surface uncertainty, evidence, confidence, and verification steps rather than inventing facts.",
-    "metadata": { "category": "mission-plan", "topic": "objective" }
-  },
-  {
-    "id": "route-a-notes",
-    "text": "Route A is the planned route from C2 through B6 and B7 to E9. It passes the bridge checkpoint in Sector B7. Before live updates, Route A was marked low risk. If live comms or drone observations mention bridge blockage or vehicles near B7, the low-risk assumption is no longer reliable and should be treated as risky or unverified.",
-    "metadata": { "category": "routes", "topic": "route-a" }
-  },
-  {
-    "id": "route-c-notes",
-    "text": "Route C is the fallback route from C2 through D4 to E9. It is slower than Route A but avoids the Sector B7 bridge checkpoint. Route C should not be described as clear unless a live report confirms it; otherwise it is a fallback with unknown current status.",
-    "metadata": { "category": "routes", "topic": "route-c" }
-  },
-  {
-    "id": "sector-b7-terrain",
-    "text": "Sector B7 is the bridge checkpoint sector. It contains a bridge checkpoint and limited-visibility terrain. B7 is on Route A and is the key sector to verify if there are reports of blockage, vehicles, or bridge checkpoint risk.",
-    "metadata": { "category": "terrain", "topic": "sector-b7" }
-  },
-  {
-    "id": "terrain-grid",
-    "text": "Mission map sectors: C2 is the start area. B6 is the approach sector. B7 is the bridge checkpoint with limited visibility. D4 is the fallback corridor used by Route C. E9 is Checkpoint Echo and the extraction point.",
-    "metadata": { "category": "terrain", "topic": "sectors" }
+    "id": "mission-opord-overview",
+    "text": "Operation Pier Glass is a notional defensive extraction exercise in the Mission Bay neighborhood of San Francisco. This is a simulated exercise, not a real operation. The area around UCSF Mission Bay, Chase Center, Mission Rock, and Pier 50 has become an active conflict zone with smoke, intermittent movement, and unreliable comms. Two friendly soldiers, Alpha and Bravo, must reach the extraction point at Pier 50. Mission Bay is a decision-support voice copilot for the soldiers in the field; it never directs lethal action, never identifies individual persons from imagery, never asserts intent. It surfaces evidence, confidence, and the next verification step.",
+    "metadata": { "category": "mission-plan", "topic": "opord-overview" }
   },
   {
     "id": "team-roster",
-    "text": "Team roster for Operation Checkpoint Echo: Chen is the comms specialist and handles radio or communications questions. Singh is the medic. Alvarez is the drone operator. Brooks is the navigation lead.",
+    "text": "Operation Pier Glass soldier roster. Alpha is mobile on the UCSF Mission Bay side of the AO, near the medical campus, trying to move east toward extraction. Bravo holds near Chase Center and Bayfront Park on the waterfront side, with better visibility toward the port and Pier 50 but not close enough to physically assist Alpha. The team must coordinate under pressure with limited information. Only Alpha and Bravo are connected to Mission Bay in this exercise.",
     "metadata": { "category": "team", "topic": "roster" }
   },
   {
-    "id": "team-units",
-    "text": "Units: Alpha is the primary field unit assigned to reach Checkpoint Echo. Bravo is recon and support, providing comms reports and drone observations. Bravo reports are useful evidence but may still require verification when confidence is not high.",
-    "metadata": { "category": "team", "topic": "units" }
+    "id": "area-of-operations",
+    "text": "Operation Pier Glass area of operations is the Mission Bay neighborhood of San Francisco, bounded roughly by King Street to the north, 16th Street to the south, 6th Street to the west, and the bay waterfront to the east. The AO contains UCSF Mission Bay hospital campus on the west side, Chase Center and Bayfront Park on the east side, Mission Rock Street running east-west through the middle, Mission Creek Channel cutting east-west to the north, and the port of San Francisco with Pier 50 forming the extraction point on the northeast.",
+    "metadata": { "category": "geography", "topic": "ao-boundary" }
   },
   {
-    "id": "mission-constraints",
-    "text": "Mission constraints: Mission Bay must not claim omniscience or tactical certainty. Bravo comms may be delayed or incomplete. Sector B7 has limited visibility. The system should identify what needs verification, especially route blockage, vehicle presence, and fallback route clearance.",
-    "metadata": { "category": "constraints", "topic": "safety" }
+    "id": "sector-grid",
+    "text": "Sector grid for Operation Pier Glass. M1 is the UCSF Mission Bay Hospital area on the west side, Alpha's starting position. M2 is Mission Bay Boulevard South near 5th and 6th Streets, the route east out of UCSF. M3 is the Nelson Rising Lane corridor between 4th and 3rd Streets, a transition zone. M4 is the 3rd Street and Mission Rock Street intersection, the planned central corridor and the highest-risk sector. M5 is Chase Center and Bayfront Park on the waterfront, Bravo's position. M6 is the Long Bridge Street and China Basin Street area, a Mission Creek-adjacent chokepoint. W1 is the Bayfront waterfront path north from Bayfront Park, the proposed fallback corridor. P1 is Pier 50, the extraction point on the northeast at the port.",
+    "metadata": { "category": "geography", "topic": "sector-grid" }
   },
   {
-    "id": "expected-catch-up",
-    "text": "Expected catch-up pattern: The original plan said Route A through Sector B7 was low risk. Live updates may change that if Bravo reports a possible blockage, drone imagery suggests vehicles near the bridge checkpoint, Command changes priority to extraction, or Alpha approaches B7. The highest-priority uncertainty after those events is whether Route C is clear and what the vehicles near B7 are doing.",
+    "id": "landmark-ucsf-mission-bay",
+    "text": "UCSF Mission Bay Hospital and Medical Center occupy the west side of the AO, bounded by 4th Street east, 16th Street south, and the I-280 elevated freeway west. The hospital campus is sector M1. The medical buildings provide cover and elevated observation. Alpha begins the exercise holding inside the M1 campus. Moving east out of M1 puts Alpha into the open M2 corridor along Mission Bay Boulevard South.",
+    "metadata": { "category": "landmarks", "topic": "ucsf-mission-bay" }
+  },
+  {
+    "id": "landmark-3rd-mission-rock-corridor",
+    "text": "The 3rd Street and Mission Rock Street intersection, sector M4, is the planned central corridor that Alpha was originally supposed to use to link up with Bravo. 3rd Street is a multi-lane north-south arterial running past Chase Center toward King Street. Mission Rock Street is the main east-west crossing. The corridor is exposed with limited cover on the north and east sides. Bravo has reported smoke and intermittent movement near M4. Treat any planned movement through M4 as risky until a fresh observation says otherwise.",
+    "metadata": { "category": "landmarks", "topic": "3rd-mission-rock" }
+  },
+  {
+    "id": "landmark-chase-center-bayfront",
+    "text": "Chase Center and Bayfront Park, sector M5, sit on the waterfront side of the AO between Warriors Way and the bay. Chase Center is a multi-purpose arena. Bayfront Park is open ground east of Chase Center with a footpath running north toward the port and Pier 50. Bravo holds at M5 with a good observation angle toward the waterfront and partial visibility toward the central 3rd Street corridor. Bravo is not close enough to physically reach Alpha quickly but can guide a waterfront approach.",
+    "metadata": { "category": "landmarks", "topic": "chase-center-bayfront" }
+  },
+  {
+    "id": "landmark-mission-creek-bridge",
+    "text": "Mission Creek Channel cuts east-west across the northern edge of the AO between the AO and the King Street area. The Long Bridge Street and China Basin Street area, sector M6, contains the main pedestrian and vehicle crossings over Mission Creek. M6 is a known chokepoint. If movement at M6 is blocked or contested, Alpha and Bravo lose maneuver options northward. The Mission Creek crossing is on neither the planned central route nor the waterfront fallback and should be avoided unless extraction requires it.",
+    "metadata": { "category": "landmarks", "topic": "mission-creek-bridge" }
+  },
+  {
+    "id": "landmark-pier-50-extraction",
+    "text": "Pier 50, sector P1, is the extraction point. It is at the Port of San Francisco on the northeast corner of the AO, at the end of Mission Rock Street where it meets the waterfront. The pier extends east into the bay. Both Alpha and Bravo must reach P1 to complete the exercise. The two reasonable approach paths are the central corridor through M4 along Mission Rock Street and the waterfront path W1 north through Bayfront Park.",
+    "metadata": { "category": "landmarks", "topic": "pier-50" }
+  },
+  {
+    "id": "route-central-planned",
+    "text": "Planned route, central. Alpha moves east from UCSF Mission Bay M1 to M2 along Mission Bay Boulevard South, then east through M3 toward the 3rd Street and Mission Rock corridor at M4. From M4, Alpha continues east on Mission Rock Street to Pier 50 at P1. This was the original plan because it is the most direct path. Live updates from Bravo have flagged smoke and intermittent movement at M4. The central route is no longer assumed safe and should be treated as risky until verified.",
+    "metadata": { "category": "routes", "topic": "central-route" }
+  },
+  {
+    "id": "route-waterfront-fallback",
+    "text": "Fallback route, waterfront. Bravo at M5 can guide Alpha toward a waterfront approach. The fallback runs north through Bayfront Park and the W1 waterfront path, hugging the bay edge east of Chase Center, then turning east at the port toward Pier 50 at P1. This path avoids the central 3rd Street M4 corridor and uses Bayfront cover. Visibility into W1 from Bravo's position is partial, not complete. Drone observations suggest W1 is less obstructed than the central route but it is not fully confirmed.",
+    "metadata": { "category": "routes", "topic": "waterfront-fallback" }
+  },
+  {
+    "id": "static-known-risks",
+    "text": "Static known risks in the Mission Bay AO. The central corridor at M4, 3rd and Mission Rock, is exposed with limited cover and is the most direct path which makes it attractive to OPFOR observation. The Mission Creek crossing at M6 is a chokepoint where movement can be blocked. The waterfront path W1 is partially observable from Bravo at M5 but visibility is incomplete and conditions can change. Alpha's movement east from M1 toward M3 and M4 carries the highest combined risk because it brings Alpha closer to the uncertain central corridor with each step.",
+    "metadata": { "category": "risks", "topic": "static-baseline" }
+  },
+  {
+    "id": "roe-safety-framing",
+    "text": "Rules of engagement and safety framing for Operation Pier Glass. This is a training exercise; all conflict, civilians, and events are simulated unless EXCON confirms otherwise. Mission Bay is a decision-support copilot, not an autonomous system. Mission Bay never directs lethal action, never authorizes weapons employment, and never tells a soldier to engage. Mission Bay never identifies individual persons from drone or satellite imagery; it describes observable patterns such as group sizes, vehicle counts, movement direction, and posture with explicit confidence. Mission Bay never asserts intent; it does not label observed persons hostile, friendly, or neutral. Mission Bay surfaces uncertainty and the next verification step rather than fabricating certainty. The mission goal is not to win a battle; the goal is to stay oriented, avoid unsafe routes, and reach extraction.",
+    "metadata": { "category": "safety", "topic": "roe-framing" }
+  },
+  {
+    "id": "agent-behavior-catchup",
+    "text": "Catch-up behavior for Mission Bay. The picture changes when any of the following arrive: a movement report from Alpha or Bravo, smoke or movement observations near the central M4 corridor, drone observations of the waterfront W1 path, a command priority change from EXCON, or a GPS position update on either soldier. When a soldier asks for a catch-up, Mission Bay should answer the five core questions of the exercise: what changed since the original plan, where Alpha and Bravo currently are, why the original central route is now risky, what is still unknown, and what the team should verify or do next. Mission Bay opens every utterance with the soldier's callsign such as Alpha or Bravo.",
     "metadata": { "category": "agent-behavior", "topic": "catch-up" }
+  },
+  {
+    "id": "priority-extraction-over-recon",
+    "text": "Priority hierarchy for Operation Pier Glass. Initial priority was to confirm the central corridor through M4 and link Alpha with Bravo there. Once command updates priority to extraction, the team should stop spending time on secondary route reconnaissance. The new priority is fastest reasonably safe route to Pier 50 at P1. Mission Bay should recognize this priority shift when it arrives and reframe its recommendations accordingly. Reasonably safe means: avoids the active risk at M4, uses Bravo's observation guidance on the waterfront W1 path, and gets both soldiers moving toward P1 without further reconnaissance loops.",
+    "metadata": { "category": "agent-behavior", "topic": "priority-shift" }
   }
 ]
