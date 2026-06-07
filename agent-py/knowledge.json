@@ -1,67 +1,77 @@
 [
   {
-    "id": "kb-rag-pattern",
-    "text": "Q: How should a LiveKit voice agent perform retrieval-augmented generation (RAG)? A: Override the on_user_turn_completed node (in livekit.agents) to run a semantic search against your knowledge index using the user's most recent turn, then inject the retrieved snippets into the chat context before the LLM generates its reply. Doing the lookup in this node avoids the extra round-trips of tool calls, so it is usually more responsive than a function-tool lookup. In this starter, the lookup queries the Moss 'knowledge' index via MossClient.query.",
-    "metadata": { "category": "patterns", "topic": "rag" }
+    "id": "mission-opord-overview",
+    "text": "Operation Pier Glass is a notional defensive extraction exercise in the Mission Bay neighborhood of San Francisco. This is a simulated exercise, not a real operation. The area around UCSF Mission Bay, Chase Center, Mission Rock, and Pier 50 has become an active conflict zone with smoke, intermittent movement, and unreliable comms. Two friendly soldiers, Alpha and Bravo, must reach the extraction point at Pier 50. Mission Bay is a decision-support voice copilot for the soldiers in the field; it never directs lethal action, never identifies individual persons from imagery, never asserts intent. It surfaces evidence, confidence, and the next verification step.",
+    "metadata": { "category": "mission-plan", "topic": "opord-overview" }
   },
   {
-    "id": "kb-agentic-memory",
-    "text": "Q: How can a voice agent remember things across sessions? A: Expose explicit memory tools such as remember, recall, forget, and search_memory as function tools so the LLM itself decides what to persist and when to retrieve it. Back these tools with a per-user store; in this starter that store is a separate Moss 'memory' index, keyed by a user_id in each document's metadata, so a user's memories stay isolated from the static knowledge base.",
-    "metadata": { "category": "patterns", "topic": "memory" }
+    "id": "team-roster",
+    "text": "Operation Pier Glass soldier roster. Alpha is mobile on the UCSF Mission Bay side of the AO, near the medical campus, trying to move east toward extraction. Bravo holds near Chase Center and Bayfront Park on the waterfront side, with better visibility toward the port and Pier 50 but not close enough to physically assist Alpha. The team must coordinate under pressure with limited information. Only Alpha and Bravo are connected to Mission Bay in this exercise.",
+    "metadata": { "category": "team", "topic": "roster" }
   },
   {
-    "id": "kb-interruptions",
-    "text": "Q: How do voice agents handle being interrupted mid-reply, and how do I protect critical actions? A: By default the agent detects user speech during playback and pauses its current reply so the conversation feels natural. For function tools that mutate external state (placing an order, sending a payment), an interruption can leave the operation half-finished with no rollback, so call context.disallow_interruptions() at the start of the tool (Python) to make that turn uninterruptible until it completes.",
-    "metadata": { "category": "voice-agents", "topic": "interruptions" }
+    "id": "area-of-operations",
+    "text": "Operation Pier Glass area of operations is the Mission Bay neighborhood of San Francisco, bounded roughly by King Street to the north, 16th Street to the south, 6th Street to the west, and the bay waterfront to the east. The AO contains UCSF Mission Bay hospital campus on the west side, Chase Center and Bayfront Park on the east side, Mission Rock Street running east-west through the middle, Mission Creek Channel cutting east-west to the north, and the port of San Francisco with Pier 50 forming the extraction point on the northeast.",
+    "metadata": { "category": "geography", "topic": "ao-boundary" }
   },
   {
-    "id": "kb-turn-detection",
-    "text": "Q: How does a LiveKit agent know when the user has finished speaking? A: Turn detection decides when the user's turn ends so the agent can reply without cutting them off. This starter uses the turn_detector MultilingualModel() plug-in as the turn detector, combined with Silero VAD for voice-activity cues. Alternatives for the turn_detection option include 'stt' (end-of-utterance cues from the STT model), 'vad', 'realtime_llm' (server-side detection from a realtime LLM), or 'manual' for explicit control.",
-    "metadata": { "category": "voice-agents", "topic": "turn-detection" }
+    "id": "sector-grid",
+    "text": "Sector grid for Operation Pier Glass. M1 is the UCSF Mission Bay Hospital area on the west side, Alpha's starting position. M2 is Mission Bay Boulevard South near 5th and 6th Streets, the route east out of UCSF. M3 is the Nelson Rising Lane corridor between 4th and 3rd Streets, a transition zone. M4 is the 3rd Street and Mission Rock Street intersection, the planned central corridor and the highest-risk sector. M5 is Chase Center and Bayfront Park on the waterfront, Bravo's position. M6 is the Long Bridge Street and China Basin Street area, a Mission Creek-adjacent chokepoint. W1 is the Bayfront waterfront path north from Bayfront Park, the proposed fallback corridor. P1 is Pier 50, the extraction point on the northeast at the port.",
+    "metadata": { "category": "geography", "topic": "sector-grid" }
   },
   {
-    "id": "kb-stt-choice",
-    "text": "Q: How do I choose a speech-to-text (STT) provider for a realtime voice agent? A: With LiveKit Inference you select an STT model by name without wiring up provider API keys, since the provider runs server-side. This starter uses inference.STT(model='deepgram/nova-3', language='multi'). For realtime conversation, prefer models with strong streaming and built-in endpointing, and set the language to 'multi' when you need multilingual transcription.",
-    "metadata": { "category": "models", "topic": "stt" }
+    "id": "landmark-ucsf-mission-bay",
+    "text": "UCSF Mission Bay Hospital and Medical Center occupy the west side of the AO, bounded by 4th Street east, 16th Street south, and the I-280 elevated freeway west. The hospital campus is sector M1. The medical buildings provide cover and elevated observation. Alpha begins the exercise holding inside the M1 campus. Moving east out of M1 puts Alpha into the open M2 corridor along Mission Bay Boulevard South.",
+    "metadata": { "category": "landmarks", "topic": "ucsf-mission-bay" }
   },
   {
-    "id": "kb-tts-choice",
-    "text": "Q: How is text-to-speech (TTS) configured in this starter? A: TTS is provided through LiveKit Inference, so no provider key is needed in the agent. The starter uses inference.TTS(model='cartesia/sonic-3', voice='<voice-id>'). To change the agent's voice, pick a different voice id for the same model, or switch to another Inference TTS model; the rest of the AgentSession wiring stays the same.",
-    "metadata": { "category": "models", "topic": "tts" }
+    "id": "landmark-3rd-mission-rock-corridor",
+    "text": "The 3rd Street and Mission Rock Street intersection, sector M4, is the planned central corridor that Alpha was originally supposed to use to link up with Bravo. 3rd Street is a multi-lane north-south arterial running past Chase Center toward King Street. Mission Rock Street is the main east-west crossing. The corridor is exposed with limited cover on the north and east sides. Bravo has reported smoke and intermittent movement near M4. Treat any planned movement through M4 as risky until a fresh observation says otherwise.",
+    "metadata": { "category": "landmarks", "topic": "3rd-mission-rock" }
   },
   {
-    "id": "kb-llm-inference",
-    "text": "Q: How is the LLM wired up without provider API keys? A: LiveKit Inference proxies the model call, so you reference a model by name instead of holding an OpenAI/Anthropic key in the agent. This starter uses inference.LLM(model='openai/gpt-5.2-chat-latest'). Only LIVEKIT_URL, LIVEKIT_API_KEY, and LIVEKIT_API_SECRET are required for STT, LLM, and TTS to work through Inference.",
-    "metadata": { "category": "models", "topic": "llm" }
+    "id": "landmark-chase-center-bayfront",
+    "text": "Chase Center and Bayfront Park, sector M5, sit on the waterfront side of the AO between Warriors Way and the bay. Chase Center is a multi-purpose arena. Bayfront Park is open ground east of Chase Center with a footpath running north toward the port and Pier 50. Bravo holds at M5 with a good observation angle toward the waterfront and partial visibility toward the central 3rd Street corridor. Bravo is not close enough to physically reach Alpha quickly but can guide a waterfront approach.",
+    "metadata": { "category": "landmarks", "topic": "chase-center-bayfront" }
   },
   {
-    "id": "kb-preemptive-generation",
-    "text": "Q: What is preemptive (speculative) speech generation and what is its trade-off? A: With preemptive_generation=True the agent speculatively starts generating (and can run TTS) on the LLM response before the user's turn is fully finalized, reducing perceived latency. The trade-off is wasted compute and higher LLM token usage: if the chat context or tools change in the on_user_turn_completed node — for example after a RAG injection — the speculative response is discarded and regenerated.",
-    "metadata": { "category": "voice-agents", "topic": "latency" }
+    "id": "landmark-mission-creek-bridge",
+    "text": "Mission Creek Channel cuts east-west across the northern edge of the AO between the AO and the King Street area. The Long Bridge Street and China Basin Street area, sector M6, contains the main pedestrian and vehicle crossings over Mission Creek. M6 is a known chokepoint. If movement at M6 is blocked or contested, Alpha and Bravo lose maneuver options northward. The Mission Creek crossing is on neither the planned central route nor the waterfront fallback and should be avoided unless extraction requires it.",
+    "metadata": { "category": "landmarks", "topic": "mission-creek-bridge" }
   },
   {
-    "id": "kb-noise-cancellation",
-    "text": "Q: How does this starter improve audio quality in noisy environments? A: It applies noise cancellation on the input audio using the ai_coustics plug-in, configured through room_io.AudioInputOptions when the AgentSession's room input is set up. Cleaning the user's audio before STT improves transcription accuracy and turn detection, especially on calls or in noisy rooms.",
-    "metadata": { "category": "voice-agents", "topic": "audio" }
+    "id": "landmark-pier-50-extraction",
+    "text": "Pier 50, sector P1, is the extraction point. It is at the Port of San Francisco on the northeast corner of the AO, at the end of Mission Rock Street where it meets the waterfront. The pier extends east into the bay. Both Alpha and Bravo must reach P1 to complete the exercise. The two reasonable approach paths are the central corridor through M4 along Mission Rock Street and the waterfront path W1 north through Bayfront Park.",
+    "metadata": { "category": "landmarks", "topic": "pier-50" }
   },
   {
-    "id": "kb-metrics-usage",
-    "text": "Q: How do I collect cost and usage metrics from an agent session? A: For session-scoped cost and usage tracking, use the session usage surface to aggregate per-model usage across the conversation and export a summary when the session ends. For finer granularity, subscribe to the per-plugin metrics_collected event on each component (STT, LLM, TTS, VAD). Note the older session-level metrics_collected event (session.on('metrics_collected', ...)) is deprecated in favor of the per-plugin event and session usage.",
-    "metadata": { "category": "deployment", "topic": "telemetry" }
+    "id": "route-central-planned",
+    "text": "Planned route, central. Alpha moves east from UCSF Mission Bay M1 to M2 along Mission Bay Boulevard South, then east through M3 toward the 3rd Street and Mission Rock corridor at M4. From M4, Alpha continues east on Mission Rock Street to Pier 50 at P1. This was the original plan because it is the most direct path. Live updates from Bravo have flagged smoke and intermittent movement at M4. The central route is no longer assumed safe and should be treated as risky until verified.",
+    "metadata": { "category": "routes", "topic": "central-route" }
   },
   {
-    "id": "kb-agentserver-pattern",
-    "text": "Q: How is the agent process structured in this starter? A: It uses the AgentServer pattern from livekit.agents rather than WorkerOptions/entrypoint. You create server = AgentServer(), assign server.setup_fnc = prewarm to load Silero VAD into proc.userdata['vad'], and decorate the session handler with @server.rtc_session(agent_name='agent-py') on an async function that takes a JobContext. The process runs via cli.run_app(server) under if __name__ == '__main__'.",
-    "metadata": { "category": "voice-agents", "topic": "architecture" }
+    "id": "route-waterfront-fallback",
+    "text": "Fallback route, waterfront. Bravo at M5 can guide Alpha toward a waterfront approach. The fallback runs north through Bayfront Park and the W1 waterfront path, hugging the bay edge east of Chase Center, then turning east at the port toward Pier 50 at P1. This path avoids the central 3rd Street M4 corridor and uses Bayfront cover. Visibility into W1 from Bravo's position is partial, not complete. Drone observations suggest W1 is less obstructed than the central route but it is not fully confirmed.",
+    "metadata": { "category": "routes", "topic": "waterfront-fallback" }
   },
   {
-    "id": "kb-explicit-dispatch",
-    "text": "Q: How do I make the frontend dispatch to this specific Python agent? A: The agent registers under agent_name='agent-py' in its @server.rtc_session decorator. For explicit dispatch, the frontend must request that same name: set AGENT_NAME=agent-py in the frontend's .env.local, which flows into app-config.ts (agentName) and the room configuration's agents list. If AGENT_NAME is left blank, the room uses automatic dispatch instead.",
-    "metadata": { "category": "deployment", "topic": "dispatch" }
+    "id": "static-known-risks",
+    "text": "Static known risks in the Mission Bay AO. The central corridor at M4, 3rd and Mission Rock, is exposed with limited cover and is the most direct path which makes it attractive to OPFOR observation. The Mission Creek crossing at M6 is a chokepoint where movement can be blocked. The waterfront path W1 is partially observable from Bravo at M5 but visibility is incomplete and conditions can change. Alpha's movement east from M1 toward M3 and M4 carries the highest combined risk because it brings Alpha closer to the uncertain central corridor with each step.",
+    "metadata": { "category": "risks", "topic": "static-baseline" }
   },
   {
-    "id": "kb-prewarm-vad",
-    "text": "Q: Why and how is Silero VAD prewarmed? A: Loading the VAD model is relatively expensive, so it is loaded once at process startup instead of per session. The starter sets server.setup_fnc = prewarm, and prewarm loads silero.VAD into proc.userdata['vad']; each new session then reuses that cached VAD instance, reducing first-response latency for the very first call the worker handles.",
-    "metadata": { "category": "voice-agents", "topic": "performance" }
+    "id": "roe-safety-framing",
+    "text": "Rules of engagement and safety framing for Operation Pier Glass. This is a training exercise; all conflict, civilians, and events are simulated unless EXCON confirms otherwise. Mission Bay is a decision-support copilot, not an autonomous system. Mission Bay never directs lethal action, never authorizes weapons employment, and never tells a soldier to engage. Mission Bay never identifies individual persons from drone or satellite imagery; it describes observable patterns such as group sizes, vehicle counts, movement direction, and posture with explicit confidence. Mission Bay never asserts intent; it does not label observed persons hostile, friendly, or neutral. Mission Bay surfaces uncertainty and the next verification step rather than fabricating certainty. The mission goal is not to win a battle; the goal is to stay oriented, avoid unsafe routes, and reach extraction.",
+    "metadata": { "category": "safety", "topic": "roe-framing" }
+  },
+  {
+    "id": "agent-behavior-catchup",
+    "text": "Catch-up behavior for Mission Bay. The picture changes when any of the following arrive: a movement report from Alpha or Bravo, smoke or movement observations near the central M4 corridor, drone observations of the waterfront W1 path, a command priority change from EXCON, or a GPS position update on either soldier. When a soldier asks for a catch-up, Mission Bay should answer the five core questions of the exercise: what changed since the original plan, where Alpha and Bravo currently are, why the original central route is now risky, what is still unknown, and what the team should verify or do next. Mission Bay opens every utterance with the soldier's callsign such as Alpha or Bravo.",
+    "metadata": { "category": "agent-behavior", "topic": "catch-up" }
+  },
+  {
+    "id": "priority-extraction-over-recon",
+    "text": "Priority hierarchy for Operation Pier Glass. Initial priority was to confirm the central corridor through M4 and link Alpha with Bravo there. Once command updates priority to extraction, the team should stop spending time on secondary route reconnaissance. The new priority is fastest reasonably safe route to Pier 50 at P1. Mission Bay should recognize this priority shift when it arrives and reframe its recommendations accordingly. Reasonably safe means: avoids the active risk at M4, uses Bravo's observation guidance on the waterfront W1 path, and gets both soldiers moving toward P1 without further reconnaissance loops.",
+    "metadata": { "category": "agent-behavior", "topic": "priority-shift" }
   }
 ]

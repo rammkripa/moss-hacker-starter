@@ -33,10 +33,9 @@ export interface AppConfig {
 }
 
 export const APP_CONFIG_DEFAULTS: AppConfig = {
-  companyName: 'Moss',
-  pageTitle: 'Moss LiveKit Docs Helper',
-  pageDescription:
-    'A voice assistant that answers LiveKit questions from a Moss knowledge base and remembers what you tell it',
+  companyName: 'Mission Bay',
+  pageTitle: 'Mission Bay',
+  pageDescription: 'Live mission context, synthesized in real time.',
 
   supportsChatInput: true,
   supportsVideoInput: true,
@@ -44,10 +43,10 @@ export const APP_CONFIG_DEFAULTS: AppConfig = {
   isPreConnectBufferEnabled: true,
 
   logo: '/lk-logo.svg',
-  accent: '#002cf2',
+  accent: '#06b6d4',
   logoDark: '/lk-logo-dark.svg',
-  accentDark: '#1fd5f9',
-  startButtonText: 'Start call',
+  accentDark: '#67e8f9',
+  startButtonText: 'Start Mission Bay',
 
   // optional: audio visualization configuration
   // audioVisualizerType: 'bar',
