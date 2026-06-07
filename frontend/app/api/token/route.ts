@@ -17,6 +17,7 @@ const API_SECRET = process.env.LIVEKIT_API_SECRET;
 const LIVEKIT_URL = process.env.LIVEKIT_URL;
 // Agent dispatch name — must match the agent's registered name (`agent-py`). See `.env.local`.
 const AGENT_NAME = process.env.AGENT_NAME;
+const ROOM_NAME = process.env.LIVEKIT_ROOM_NAME ?? 'mission_bay_demo_room';
 
 // httpOnly cookie that persists a stable per-user id across visits. Stamped into the agent
 // dispatch metadata as `{ "user_id": <uuid> }` so the agent can scope its Moss memory per user.
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
     // Generate participant token
     const participantName = 'user';
     const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
-    const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
+    const roomName = ROOM_NAME;
 
     const participantToken = await createParticipantToken(
       { identity: participantIdentity, name: participantName },
