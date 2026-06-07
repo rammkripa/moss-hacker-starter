@@ -1,14 +1,16 @@
 'use client';
 
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { TokenSource } from 'livekit-client';
+import { TokenSource, Track } from 'livekit-client';
 import {
   useAgent,
   useSession,
   useSessionContext,
   useSessionMessages,
+  useTrackToggle,
 } from '@livekit/components-react';
 import { WarningIcon } from '@phosphor-icons/react/dist/ssr';
+import { Mic, MicOff } from 'lucide-react';
 import { APP_CONFIG_DEFAULTS } from '@/app-config';
 import { AgentChatTranscript } from '@/components/agents-ui/agent-chat-transcript';
 import { AgentSessionProvider } from '@/components/agents-ui/agent-session-provider';
@@ -203,11 +205,13 @@ function MobileSession({ callsign, role }: { callsign: string; role: Role }) {
   useDebugMode({ enabled: process.env.NODE_ENV !== 'production' });
   useAgentErrors();
   const session = useSessionContext();
+  const microphoneToggle = useTrackToggle({ source: Track.Source.Microphone });
   const { state: agentState } = useAgent();
   const { messages } = useSessionMessages(session);
   const gps = useGpsBroadcast(callsign, role, session.isConnected);
 
   const status = !session.isConnected ? 'disconnected' : agentState || 'connected';
+  const micEnabled = microphoneToggle.enabled;
 
   return (
     <main className="flex min-h-svh flex-col bg-slate-950 px-5 py-6 text-slate-100">
@@ -242,14 +246,27 @@ function MobileSession({ callsign, role }: { callsign: string; role: Role }) {
           />
         </div>
 
-        <Button
-          size="lg"
-          variant="secondary"
-          className="mt-5 h-14 w-full rounded-2xl text-base"
-          onClick={() => void session.end()}
-        >
-          Disconnect
-        </Button>
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          <Button
+            size="lg"
+            variant={micEnabled ? 'secondary' : 'default'}
+            className={`h-14 rounded-2xl text-base ${micEnabled ? '' : 'bg-rose-500 text-white hover:bg-rose-400'}`}
+            disabled={!session.isConnected || microphoneToggle.pending}
+            onClick={() => void microphoneToggle.toggle(!micEnabled)}
+          >
+            {micEnabled ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+            {micEnabled ? 'Mute Mic' : 'Unmute'}
+          </Button>
+
+          <Button
+            size="lg"
+            variant="secondary"
+            className="h-14 rounded-2xl text-base"
+            onClick={() => void session.end()}
+          >
+            Disconnect
+          </Button>
+        </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs text-slate-300">
           {['disconnected', 'connected', 'listening', 'thinking', 'speaking'].map((item) => (
