@@ -3,9 +3,9 @@ import type { MissionEvent, VisionParseResult } from './types';
 import { VISION_SYSTEM_PROMPT, buildUserPrompt } from './vision-parser-prompt';
 import { MISSION_EVENT_TOOL, validateVisionParseResult } from './vision-parser-schema';
 
-const VISION_MODEL = process.env.OPENAI_VISION_MODEL ?? process.env.VISION_MODEL ?? 'gpt-4o-mini';
-const OPENAI_CHAT_COMPLETIONS_URL =
-  process.env.OPENAI_CHAT_COMPLETIONS_URL ?? 'https://api.openai.com/v1/chat/completions';
+type VisionProvider = 'minimax' | 'openai';
+
+const VISION_PROVIDER = (process.env.VISION_PROVIDER ?? 'minimax').toLowerCase() as VisionProvider;
 // Larger images (phone uploads can be 5-10MB) need more headroom for the
 // upload-to-provider + model inference round trip. Total worst-case ~45s.
 const FIRST_ATTEMPT_TIMEOUT_MS = 25000;
@@ -38,7 +38,7 @@ export async function parsePhotoToMissionEvent(input: ParsePhotoInput): Promise<
   const base64 = Buffer.from(input.imageBytes).toString('base64');
 
   const attempt = async (timeoutMs: number) =>
-    withTimeout(callOpenAIVision({ base64, mimeType: input.mimeType, userPrompt }), timeoutMs);
+    withTimeout(callVisionModel({ base64, mimeType: input.mimeType, userPrompt }), timeoutMs);
 
   let parsedJson: unknown;
   try {
@@ -102,27 +102,23 @@ type ChatCompletionResponse = {
   }>;
 };
 
-async function callOpenAIVision(input: {
+async function callVisionModel(input: {
   base64: string;
   mimeType: ParsePhotoInput['mimeType'];
   userPrompt: string;
 }): Promise<unknown> {
-  const apiKey = process.env.REAL_OPENAI_KEY ?? process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error('missing_openai_api_key');
-  }
+  const provider = getVisionProvider();
 
-  const res = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+  const res = await fetch(provider.url, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${provider.apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: VISION_MODEL,
+      model: provider.model,
       temperature: 0.1,
-      max_tokens: 1024,
-      response_format: { type: 'json_object' },
+      ...provider.extras,
       messages: [
         {
           role: 'system',
@@ -149,11 +145,46 @@ ${JSON.stringify(MISSION_EVENT_TOOL.input_schema)}`,
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`openai_vision_http_${res.status}:${body.slice(0, 300)}`);
+    throw new Error(`${provider.name}_vision_http_${res.status}:${body.slice(0, 300)}`);
   }
 
   const json = (await res.json()) as ChatCompletionResponse;
   return extractStructuredOutput(json);
+}
+
+function getVisionProvider(): {
+  name: VisionProvider;
+  apiKey: string;
+  url: string;
+  model: string;
+  extras: Record<string, unknown>;
+} {
+  if (VISION_PROVIDER === 'openai') {
+    const apiKey = process.env.REAL_OPENAI_KEY ?? process.env.OPENAI_API_KEY;
+    if (!apiKey) throw new Error('missing_openai_api_key');
+    return {
+      name: 'openai',
+      apiKey,
+      url: process.env.OPENAI_CHAT_COMPLETIONS_URL ?? 'https://api.openai.com/v1/chat/completions',
+      model: process.env.OPENAI_VISION_MODEL ?? process.env.VISION_MODEL ?? 'gpt-4o-mini',
+      extras: {
+        max_tokens: 1024,
+        response_format: { type: 'json_object' },
+      },
+    };
+  }
+
+  const apiKey = process.env.MINIMAX_API_KEY;
+  if (!apiKey) throw new Error('missing_minimax_api_key');
+  return {
+    name: 'minimax',
+    apiKey,
+    url: process.env.MINIMAX_CHAT_COMPLETIONS_URL ?? 'https://api.minimax.io/v1/chat/completions',
+    model: process.env.MINIMAX_VISION_MODEL ?? process.env.VISION_MODEL ?? 'MiniMax-M3',
+    extras: {
+      max_completion_tokens: 1024,
+    },
+  };
 }
 
 function extractStructuredOutput(response: ChatCompletionResponse): unknown {
@@ -185,9 +216,17 @@ function extractStructuredOutput(response: ChatCompletionResponse): unknown {
 }
 
 function parseJsonish(raw: string): unknown {
-  const trimmed = raw.trim();
+  const trimmed = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
   const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-  return JSON.parse(fenced ? fenced[1] : trimmed);
+  const candidate = fenced ? fenced[1] : extractJsonObject(trimmed);
+  return JSON.parse(candidate);
+}
+
+function extractJsonObject(raw: string): string {
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start === -1 || end === -1 || end < start) return raw;
+  return raw.slice(start, end + 1);
 }
 
 export function mapToMissionEvent(
