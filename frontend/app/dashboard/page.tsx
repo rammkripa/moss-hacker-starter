@@ -1,477 +1,266 @@
 'use client';
 
-import { type ReactNode, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import {
-  missionContext,
-  scriptedMissionEvents,
-  teamContext,
-  terrainMap,
-} from '@/lib/mission/fake-data';
-import { applyEventToWorldState, resetWorldState } from '@/lib/mission/reducer';
-import type { MissionEvent, WorldState } from '@/lib/mission/types';
+import dynamic from 'next/dynamic';
+import { type ReactNode, useState } from 'react';
+import { DEMO_EVENTS, SECTOR_COORDS, type DemoEvent } from '@/lib/mission/demo-events';
+import type { MissionEvent } from '@/lib/mission/types';
+import { DroneUpload } from '@/components/dashboard/drone-upload';
 
-function Panel({
-  title,
-  children,
-  className = '',
-}: {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section
-      className={`rounded-2xl border border-slate-700/70 bg-slate-900/75 p-4 shadow-xl shadow-black/20 ${className}`}
-    >
-      <h2 className="mb-3 text-sm font-semibold tracking-[0.18em] text-cyan-300 uppercase">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
+// Map uses Leaflet which depends on `window`; load it client-side only.
+const MissionMap = dynamic(
+  () => import('@/components/dashboard/mission-map').then((m) => m.MissionMap),
+  { ssr: false, loading: () => <div className="h-[60vh] rounded-2xl border border-slate-700 bg-slate-900/40" /> },
+);
 
-function Pill({
-  children,
-  tone = 'slate',
-}: {
-  children: ReactNode;
-  tone?: 'slate' | 'green' | 'yellow' | 'red' | 'cyan';
-}) {
-  const tones = {
-    slate: 'border-slate-600 bg-slate-800 text-slate-200',
-    green: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200',
-    yellow: 'border-amber-500/40 bg-amber-500/10 text-amber-200',
-    red: 'border-rose-500/40 bg-rose-500/10 text-rose-200',
-    cyan: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200',
-  };
+type PinEvent = {
+  id: string;
+  ts: number;
+  label: string;
+  lat: number;
+  lng: number;
+  tone: 'green' | 'amber' | 'rose' | 'cyan' | 'slate';
+};
+
+type Log = {
+  id: string;
+  ts: string;
+  label: string;
+  status: 'pending' | 'ok' | 'error';
+  detail?: string;
+};
+
+const TONE_CLASSES: Record<DemoEvent['tone'], string> = {
+  slate: 'border-slate-700 bg-slate-900 hover:bg-slate-800',
+  green: 'border-emerald-500/40 bg-emerald-500/5 hover:bg-emerald-500/10',
+  amber: 'border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10',
+  rose: 'border-rose-500/40 bg-rose-500/5 hover:bg-rose-500/10',
+  cyan: 'border-cyan-500/40 bg-cyan-500/5 hover:bg-cyan-500/10',
+};
+
+function Pill({ children, tone = 'slate' }: { children: ReactNode; tone?: DemoEvent['tone'] }) {
   return (
-    <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${tones[tone]}`}>
+    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${TONE_CLASSES[tone]} text-slate-100`}>
       {children}
     </span>
   );
 }
 
-function toneForUrgency(value: string) {
-  if (value === 'critical' || value === 'high' || value === 'blocked' || value === 'risky')
-    return 'red' as const;
-  if (value === 'medium' || value === 'unknown') return 'yellow' as const;
-  if (value === 'clear' || value === 'low') return 'green' as const;
-  return 'slate' as const;
-}
-
-function MissionMap({ worldState }: { worldState: WorldState }) {
-  const alpha = worldState.teamPositions.alpha;
-  const bravo = worldState.teamPositions.bravo;
-  const riskyB7 =
-    worldState.routeStatus['route-a']?.status === 'risky' ||
-    worldState.routeStatus['route-a']?.status === 'blocked';
-  const sectors = terrainMap.sectors;
-
-  return (
-    <div className="rounded-xl border border-slate-700 bg-slate-950 p-3">
-      <svg
-        viewBox="0 0 100 100"
-        className="h-[310px] w-full rounded-lg bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_35%),linear-gradient(135deg,_#0f172a,_#020617)]"
-      >
-        <defs>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="1.4" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        <polyline
-          points="12,70 34,52 58,42 84,56"
-          fill="none"
-          stroke={riskyB7 ? '#fb7185' : '#22c55e'}
-          strokeWidth="2.5"
-          strokeDasharray="4 2"
-        />
-        <polyline
-          points="12,70 42,82 84,56"
-          fill="none"
-          stroke="#38bdf8"
-          strokeWidth="2.5"
-          strokeDasharray="2 3"
-        />
-        {sectors.map((sector) => (
-          <g key={sector.id}>
-            <circle
-              cx={sector.coordinates.x}
-              cy={sector.coordinates.y}
-              r="7"
-              fill={sector.id === 'B7' && riskyB7 ? '#7f1d1d' : '#1e293b'}
-              stroke={sector.id === 'B7' && riskyB7 ? '#fb7185' : '#64748b'}
-              strokeWidth="1.2"
-            />
-            <text
-              x={sector.coordinates.x}
-              y={sector.coordinates.y + 1.5}
-              textAnchor="middle"
-              className="fill-slate-100 text-[4px] font-bold"
-            >
-              {sector.id}
-            </text>
-            <text
-              x={sector.coordinates.x}
-              y={sector.coordinates.y + 11}
-              textAnchor="middle"
-              className="fill-slate-300 text-[3px]"
-            >
-              {sector.name}
-            </text>
-          </g>
-        ))}
-        <text x="20" y="64" className="fill-emerald-300 text-[3.5px] font-semibold">
-          Route A
-        </text>
-        <text x="28" y="88" className="fill-cyan-300 text-[3.5px] font-semibold">
-          Route C
-        </text>
-        {alpha?.coordinates && (
-          <g filter="url(#glow)">
-            <circle cx={alpha.coordinates.x} cy={alpha.coordinates.y} r="3.2" fill="#facc15" />
-            <text
-              x={alpha.coordinates.x + 4}
-              y={alpha.coordinates.y - 2}
-              className="fill-yellow-200 text-[4px] font-bold"
-            >
-              Alpha
-            </text>
-          </g>
-        )}
-        {bravo?.coordinates && (
-          <g>
-            <rect
-              x={bravo.coordinates.x - 2.5}
-              y={bravo.coordinates.y - 2.5}
-              width="5"
-              height="5"
-              fill="#a78bfa"
-            />
-            <text
-              x={bravo.coordinates.x + 4}
-              y={bravo.coordinates.y - 2}
-              className="fill-violet-200 text-[4px] font-bold"
-            >
-              Bravo
-            </text>
-          </g>
-        )}
-      </svg>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
-        <Pill tone="green">Route A planned path</Pill>
-        <Pill tone="cyan">Route C fallback</Pill>
-        <Pill tone={riskyB7 ? 'red' : 'slate'}>
-          B7 risk {riskyB7 ? 'elevated' : 'not elevated yet'}
-        </Pill>
-      </div>
-    </div>
-  );
-}
-
-async function persistMissionState(worldState: WorldState, injectedEvents: MissionEvent[]) {
-  await fetch('/api/mission/state', {
+async function postEvent(event: MissionEvent): Promise<void> {
+  const res = await fetch('/api/mission/ingest', {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ action: 'set', worldState, injectedEvents }),
-  }).catch(() => undefined);
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '(no body)');
+    throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`);
+  }
 }
 
 export default function DashboardPage() {
-  const [worldState, setWorldState] = useState<WorldState>(() => resetWorldState());
-  const [injectedEvents, setInjectedEvents] = useState<MissionEvent[]>([]);
-  const nextEvent = scriptedMissionEvents[injectedEvents.length];
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [pins, setPins] = useState<PinEvent[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
 
-  const injectEvent = (event: MissionEvent) => {
-    setWorldState((current) => {
-      const next = applyEventToWorldState(current, event);
-      const events = [...injectedEvents, event];
-      void persistMissionState(next, events);
-      return next;
-    });
-    setInjectedEvents((current) => [...current, event]);
+  const inject = async (demo: DemoEvent) => {
+    if (busy) return;
+    const event = demo.build();
+    const log: Log = {
+      id: event.id,
+      ts: new Date().toLocaleTimeString(),
+      label: demo.label,
+      status: 'pending',
+    };
+    setBusy(event.id);
+    setLogs((cur) => [log, ...cur].slice(0, 30));
+    // Drop a pin on the map if the event has coords.
+    const c = event.location?.coordinates;
+    if (c) {
+      setPins((cur) =>
+        [
+          {
+            id: event.id,
+            ts: Date.now(),
+            label: demo.label,
+            lat: c.y,
+            lng: c.x,
+            tone: demo.tone,
+          },
+          ...cur,
+        ].slice(0, 12),
+      );
+    }
+    try {
+      await postEvent(event);
+      setLogs((cur) => cur.map((l) => (l.id === event.id ? { ...l, status: 'ok' } : l)));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setLogs((cur) => cur.map((l) => (l.id === event.id ? { ...l, status: 'error', detail: msg } : l)));
+    } finally {
+      setBusy(null);
+    }
   };
-
-  const injectNext = () => {
-    if (nextEvent) injectEvent(nextEvent);
-  };
-
-  const injectAll = () => {
-    const remaining = scriptedMissionEvents.slice(injectedEvents.length);
-    if (remaining.length === 0) return;
-    const nextWorldState = remaining.reduce(applyEventToWorldState, worldState);
-    const nextEvents = [...injectedEvents, ...remaining];
-    setWorldState(nextWorldState);
-    setInjectedEvents(nextEvents);
-    void persistMissionState(nextWorldState, nextEvents);
-  };
-
-  const resetMission = () => {
-    const next = resetWorldState();
-    setWorldState(next);
-    setInjectedEvents([]);
-    void fetch('/api/mission/state', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'reset' }),
-    });
-  };
-
-  const rosterById = useMemo(
-    () => new Map(teamContext.members.map((member) => [member.id, member])),
-    []
-  );
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-5 text-slate-100">
-      <header className="mb-5 flex flex-col gap-4 rounded-3xl border border-cyan-400/30 bg-slate-900/80 p-5 shadow-2xl shadow-cyan-950/30 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-sm font-semibold tracking-[0.32em] text-cyan-300 uppercase">
-            Live mission context, synthesized in real time.
+    <main className="min-h-screen bg-slate-950 px-6 py-8 text-slate-100">
+      <div className="mx-auto max-w-6xl">
+        <header className="mb-8">
+          <p className="text-xs font-semibold tracking-[0.28em] text-cyan-300 uppercase">
+            Operation South Beach &mdash; EXCON injection panel
           </p>
-          <h1 className="mt-2 text-4xl font-black tracking-tight text-white">Mission Bay</h1>
-          <p className="mt-1 text-lg text-slate-300">
-            Real-time operating memory for high-pressure missions.
+          <h1 className="mt-2 text-4xl font-black tracking-tight">Mission Bay Dashboard</h1>
+          <p className="mt-3 max-w-2xl text-sm text-slate-300">
+            Operation Pier Glass &mdash; Mission Bay, San Francisco. Click an
+            event below to push it to{' '}
+            <code className="rounded bg-slate-800 px-1.5 py-0.5">/api/mission/ingest</code>{' '}
+            &rarr; Moss <code className="rounded bg-slate-800 px-1.5 py-0.5">events</code>{' '}
+            index + LiveKit room. Soldier GPS is reported from{' '}
+            <code className="rounded bg-slate-800 px-1.5 py-0.5">/mobile</code>.
           </p>
-          <p className="mt-2 text-sm text-slate-400">{missionContext.name}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Pill tone="green">Live/session status: demo ready</Pill>
-          <Button variant="secondary" onClick={resetMission}>
-            Reset Mission
-          </Button>
-          <Button onClick={injectNext} disabled={!nextEvent}>
-            Inject Next Event
-          </Button>
-          <Button
-            variant="outline"
-            className="border-cyan-400/50 bg-cyan-400/10 text-cyan-100 hover:bg-cyan-400/20"
-            onClick={injectAll}
-          >
-            Inject All Events
-          </Button>
-        </div>
-      </header>
+        </header>
 
-      <div className="grid gap-4 xl:grid-cols-[1.05fr_1.1fr_1.15fr]">
-        <div className="space-y-4">
-          <Panel title="Static Mission Context">
-            <div className="space-y-4 text-sm text-slate-300">
-              <div>
-                <p className="font-semibold text-white">Primary objective</p>
-                <p>{missionContext.objective.primary}</p>
-              </div>
-              <div>
-                <p className="font-semibold text-white">Routes</p>
-                <ul className="mt-1 space-y-1">
-                  {missionContext.routes.map((route) => (
-                    <li key={route.id}>
-                      <span className="text-cyan-200">{route.name}</span>: {route.notes}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p className="font-semibold text-white">Team roster</p>
-                <ul className="mt-1 grid gap-1 sm:grid-cols-2">
-                  {teamContext.members.map((member) => (
-                    <li key={member.id}>
-                      {member.callSign}: {member.role}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <p className="font-semibold text-white">Key constraints</p>
-                <ul className="mt-1 space-y-1">
-                  {missionContext.constraints.map((constraint) => (
-                    <li key={constraint.id} className="flex gap-2">
-                      <Pill tone={toneForUrgency(constraint.priority)}>{constraint.priority}</Pill>
-                      <span>{constraint.description}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </Panel>
+        <section className="mb-8">
+          <h2 className="mb-3 text-sm font-semibold tracking-[0.18em] text-cyan-300 uppercase">
+            AO map &mdash; Mission Bay, SF
+          </h2>
+          <MissionMap pinEvents={pins} />
+          <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-full bg-cyan-400" /> M1 — Alpha start (UCSF)
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-full bg-violet-400" /> M5 — Bravo (Chase Center)
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-full bg-rose-500" /> M4 — Risky central
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-full bg-emerald-500" /> W1 — Waterfront fallback
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-3 w-3 rounded-full bg-yellow-400" /> P1 — Pier 50 extraction
+            </span>
+          </div>
+        </section>
 
-          <Panel title="Retrieved Evidence">
-            <p className="text-sm text-slate-300">
-              When the voice agent searches Moss, retrieved mission evidence appears in the voice
-              session UI. Use this panel as the operator reminder to ground answers in static
-              context, live events, and current world state.
-            </p>
-            <div className="mt-3 rounded-lg border border-slate-700 bg-slate-950 p-3 text-xs text-slate-400">
-              Try from /mobile: “What is Sector B7?” or “Who can handle comms?”
-            </div>
-          </Panel>
-        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
+          <section className="space-y-6">
+            <DroneUpload
+              onParsed={(event, label) => {
+                const c = event.location?.coordinates;
+                if (c) {
+                  setPins((cur) =>
+                    [
+                      {
+                        id: event.id,
+                        ts: Date.now(),
+                        label,
+                        lat: c.y,
+                        lng: c.x,
+                        tone: (event.urgency === 'high' || event.urgency === 'critical'
+                          ? 'rose'
+                          : event.urgency === 'medium'
+                            ? 'amber'
+                            : 'cyan') as PinEvent['tone'],
+                      },
+                      ...cur,
+                    ].slice(0, 12),
+                  );
+                }
+                setLogs((cur) =>
+                  [
+                    {
+                      id: event.id,
+                      ts: new Date().toLocaleTimeString(),
+                      label: `📷 ${label}`,
+                      status: 'ok' as const,
+                    },
+                    ...cur,
+                  ].slice(0, 30),
+                );
+              }}
+            />
 
-        <div className="space-y-4">
-          <Panel title="Map / Team Positions">
-            <MissionMap worldState={worldState} />
-          </Panel>
-
-          <Panel title="Live Event Stream">
-            <div className="space-y-3">
-              {injectedEvents.length === 0 && (
-                <p className="text-sm text-slate-400">
-                  No live events injected yet. The original plan still marks Route A as low risk.
-                </p>
-              )}
-              {injectedEvents.map((event) => (
-                <article
-                  key={event.id}
-                  className="rounded-xl border border-slate-700 bg-slate-950 p-3"
+            <div>
+            <h2 className="mb-4 text-sm font-semibold tracking-[0.18em] text-cyan-300 uppercase">
+              Inject event
+            </h2>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {DEMO_EVENTS.map((demo) => (
+                <button
+                  key={demo.label}
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => void inject(demo)}
+                  className={`group rounded-2xl border p-4 text-left transition-colors disabled:opacity-50 ${TONE_CLASSES[demo.tone]}`}
                 >
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <Pill tone="cyan">
-                      {new Date(event.timestamp).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="text-sm font-bold text-white">{demo.label}</div>
+                    <Pill tone={demo.tone}>
+                      {demo.tone === 'rose' ? 'High' : demo.tone === 'amber' ? 'Med' : 'Inject'}
                     </Pill>
-                    <Pill>{event.source.name}</Pill>
-                    <Pill>{event.eventType}</Pill>
-                    <Pill tone={toneForUrgency(event.urgency)}>{event.urgency}</Pill>
-                    <Pill>{Math.round(event.confidence * 100)}% confidence</Pill>
                   </div>
-                  <p className="text-sm text-slate-200">{event.summary}</p>
-                </article>
+                  <div className="mt-2 text-xs text-slate-300 leading-relaxed">{demo.hint}</div>
+                </button>
               ))}
             </div>
-          </Panel>
-        </div>
+            </div>
+          </section>
 
-        <Panel
-          title="Current World State"
-          className="xl:sticky xl:top-5 xl:max-h-[calc(100vh-2.5rem)] xl:overflow-y-auto"
-        >
-          <div className="space-y-5 text-sm">
-            <div>
-              <p className="font-semibold text-cyan-100">Current objective</p>
-              <p className="mt-1 rounded-lg bg-slate-950 p-3 text-slate-200">
-                {worldState.currentObjective}
+          <aside>
+            <h2 className="mb-4 text-sm font-semibold tracking-[0.18em] text-cyan-300 uppercase">
+              Injection log
+            </h2>
+            <div className="space-y-2 max-h-[70vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900/40 p-3">
+              {logs.length === 0 ? (
+                <p className="text-xs text-slate-500">No events injected yet.</p>
+              ) : (
+                logs.map((log) => (
+                  <div
+                    key={log.id}
+                    className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white">{log.label}</span>
+                      <span className={
+                        log.status === 'ok'
+                          ? 'text-emerald-400'
+                          : log.status === 'error'
+                            ? 'text-rose-400'
+                            : 'text-slate-400'
+                      }>
+                        {log.status === 'pending' ? '…' : log.status === 'ok' ? '✓' : '✗'}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-slate-500">{log.ts} &middot; <span className="font-mono">{log.id.slice(0, 22)}…</span></div>
+                    {log.detail && (
+                      <div className="mt-1 text-rose-400 break-all">{log.detail}</div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-slate-800 bg-slate-900/40 p-4 text-xs text-slate-300">
+              <p className="font-semibold text-cyan-200 mb-2">Operation Pier Glass — demo flow</p>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Connect <em>Alpha</em> (recon) on a phone — opens GPS tracking</li>
+                <li>Connect <em>Bravo</em> (medic) on a second phone</li>
+                <li>Click <em>1. Alpha starts moving</em></li>
+                <li>Click <em>2. Bravo: smoke at 3rd &amp; Mission Rock</em></li>
+                <li>Click <em>3. Alpha approaching M4 (RISKY)</em></li>
+                <li>Click <em>4. Drone: waterfront may be clearer</em></li>
+                <li>Click <em>5. Command: extraction priority</em></li>
+                <li>Click <em>6. Bravo offers waterfront guidance</em></li>
+                <li>Ask the agent: &ldquo;What changed? Where should I go?&rdquo;</li>
+              </ol>
+              <p className="mt-3 text-slate-500">
+                Each click takes ~2-3s. Live phone GPS shows up as the cyan/violet
+                soldier dots on the map.
               </p>
             </div>
-            <div>
-              <p className="font-semibold text-cyan-100">Team positions</p>
-              <div className="mt-2 grid gap-2">
-                {Object.entries(worldState.teamPositions).map(([teamId, position]) => (
-                  <div key={teamId} className="rounded-lg border border-slate-700 bg-slate-950 p-3">
-                    <span className="font-semibold text-white capitalize">{teamId}</span> in{' '}
-                    {position.sectorId} · {position.status} · last update{' '}
-                    {new Date(position.lastUpdated).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="font-semibold text-cyan-100">Route status</p>
-              <div className="mt-2 space-y-2">
-                {Object.entries(worldState.routeStatus).map(([routeId, route]) => (
-                  <div
-                    key={routeId}
-                    className="rounded-lg border border-slate-700 bg-slate-950 p-3"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-white uppercase">
-                        {routeId.replace('-', ' ')}
-                      </span>
-                      <Pill tone={toneForUrgency(route.status)}>{route.status}</Pill>
-                      <Pill>{Math.round(route.confidence * 100)}% confidence</Pill>
-                    </div>
-                    <p className="mt-2 text-slate-300">{route.reason}</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Evidence: {route.supportingEventIds.join(', ') || 'original plan only'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="font-semibold text-cyan-100">Known risks</p>
-              <div className="mt-2 space-y-2">
-                {worldState.knownRisks.length === 0 ? (
-                  <p className="text-slate-400">No live risks yet.</p>
-                ) : (
-                  worldState.knownRisks.map((risk) => (
-                    <div
-                      key={risk.id}
-                      className="rounded-lg border border-rose-500/30 bg-rose-950/30 p-3"
-                    >
-                      <Pill tone={toneForUrgency(risk.urgency)}>{risk.urgency}</Pill>
-                      <p className="mt-2 text-slate-200">{risk.summary}</p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        Sector {risk.sectorId ?? 'unknown'} · {Math.round(risk.confidence * 100)}%
-                        confidence
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-            <div>
-              <p className="font-semibold text-cyan-100">Recent changes</p>
-              <ol className="mt-2 space-y-2">
-                {worldState.recentChanges.length === 0 ? (
-                  <li className="text-slate-400">No changes from the baseline plan.</li>
-                ) : (
-                  worldState.recentChanges.map((change) => (
-                    <li
-                      key={change.id}
-                      className="rounded-lg border border-slate-700 bg-slate-950 p-3"
-                    >
-                      <Pill tone={toneForUrgency(change.significance)}>{change.significance}</Pill>
-                      <p className="mt-2 text-slate-200">{change.summary}</p>
-                    </li>
-                  ))
-                )}
-              </ol>
-            </div>
-            <div>
-              <p className="font-semibold text-cyan-100">Open questions</p>
-              <div className="mt-2 space-y-2">
-                {worldState.openQuestions.map((question) => (
-                  <div
-                    key={question.id}
-                    className="rounded-lg border border-amber-500/30 bg-amber-950/20 p-3"
-                  >
-                    <Pill tone={toneForUrgency(question.priority)}>{question.priority}</Pill>
-                    <p className="mt-2 font-medium text-slate-100">{question.question}</p>
-                    <p className="mt-1 text-slate-400">{question.whyItMatters}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="font-semibold text-cyan-100">Units</p>
-              <div className="mt-2 space-y-2">
-                {teamContext.units.map((unit) => (
-                  <div
-                    key={unit.id}
-                    className="rounded-lg border border-slate-700 bg-slate-950 p-3"
-                  >
-                    <span className="font-semibold text-white">{unit.name}</span>
-                    <p className="text-slate-300">{unit.assignment}</p>
-                    <p className="text-xs text-slate-500">
-                      Members:{' '}
-                      {unit.members.map((id) => rosterById.get(id)?.callSign ?? id).join(', ')}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Panel>
+          </aside>
+        </div>
       </div>
     </main>
   );
