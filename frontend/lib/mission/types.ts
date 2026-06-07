@@ -87,7 +87,14 @@ export type MissionEvent = {
   missionId: string;
   timestamp: string;
   source: {
-    type: 'comms' | 'gps' | 'drone_image' | 'command_update' | 'manual_note' | 'system';
+    type:
+      | 'comms'
+      | 'gps'
+      | 'drone_image'
+      | 'mobile_capture'
+      | 'command_update'
+      | 'manual_note'
+      | 'system';
     name: string;
     reliability: 'low' | 'medium' | 'high';
   };
@@ -95,11 +102,20 @@ export type MissionEvent = {
     | 'position_update'
     | 'route_status_update'
     | 'visual_observation'
+    | 'traffic'
+    | 'crowd'
+    | 'weather'
+    | 'infrastructure'
+    | 'protest'
+    | 'incident'
     | 'command_update'
     | 'status_report'
     | 'risk_detected'
     | 'objective_update'
     | 'equipment_update'
+    | 'transit_delay'
+    | 'comms'
+    | 'conflict'
     | 'unknown';
   summary: string;
   entities: Array<{
@@ -176,4 +192,37 @@ export type WorldState = {
     relatedSectorId?: string;
     priority: 'low' | 'medium' | 'high';
   }>;
+};
+
+export type VisionObservationCategory =
+  | 'visual_observation'
+  | 'traffic'
+  | 'crowd'
+  | 'weather'
+  | 'infrastructure'
+  | 'protest'
+  | 'incident';
+
+export type VisionParseResult = {
+  observationCategory: VisionObservationCategory;
+  summary: string;
+  confidence: number;
+  urgency: 'low' | 'medium' | 'high';
+  riskAssessment: string;
+  vehicles: { count: number; descriptions: string[] };
+  peopleEstimate: {
+    count: number | null;
+    bucket: 'none' | 'few' | 'dozens' | 'hundreds' | 'thousands' | 'unknown';
+  };
+  infrastructureState:
+    | 'normal' | 'damaged' | 'blocked' | 'under_construction' | 'unknown';
+  locationGuess: {
+    description: string;
+    landmarks: string[];
+    streets: string[];
+    isSanFrancisco: boolean;
+    confidence: number;
+  };
+  notableEntities: string[];
+  rejectionReason?: string;
 };
