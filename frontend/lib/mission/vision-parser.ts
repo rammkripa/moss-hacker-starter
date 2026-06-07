@@ -1,12 +1,13 @@
-import Anthropic from '@anthropic-ai/sdk';
 import { nanoid } from 'nanoid';
 import type { MissionEvent, VisionParseResult } from './types';
-import { MISSION_EVENT_TOOL, validateVisionParseResult } from './vision-parser-schema';
 import { VISION_SYSTEM_PROMPT, buildUserPrompt } from './vision-parser-prompt';
+import { MISSION_EVENT_TOOL, validateVisionParseResult } from './vision-parser-schema';
 
-const VISION_MODEL = process.env.VISION_MODEL ?? 'claude-sonnet-4-6';
+const VISION_MODEL = process.env.OPENAI_VISION_MODEL ?? process.env.VISION_MODEL ?? 'gpt-4o-mini';
+const OPENAI_CHAT_COMPLETIONS_URL =
+  process.env.OPENAI_CHAT_COMPLETIONS_URL ?? 'https://api.openai.com/v1/chat/completions';
 // Larger images (phone uploads can be 5-10MB) need more headroom for the
-// upload-to-Anthropic + model inference round trip. Total worst-case ~45s.
+// upload-to-provider + model inference round trip. Total worst-case ~45s.
 const FIRST_ATTEMPT_TIMEOUT_MS = 25000;
 const RETRY_TIMEOUT_MS = 20000;
 const MISSION_ID = 'operation-pier-glass';
@@ -27,23 +28,7 @@ export type ParsePhotoOutcome =
       lowConfidenceEvent: MissionEvent;
     };
 
-let _client: Anthropic | null = null;
-
-function client(): Anthropic {
-  if (!_client) {
-    _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY ?? '' });
-  }
-  return _client;
-}
-
-/** Test seam — let unit tests inject a fake. */
-export function __setAnthropicClient(c: Anthropic | null) {
-  _client = c;
-}
-
-export async function parsePhotoToMissionEvent(
-  input: ParsePhotoInput
-): Promise<ParsePhotoOutcome> {
+export async function parsePhotoToMissionEvent(input: ParsePhotoInput): Promise<ParsePhotoOutcome> {
   const capturedAt = new Date().toISOString();
   const userPrompt = buildUserPrompt({
     submitterId: input.submitterId,
@@ -53,35 +38,14 @@ export async function parsePhotoToMissionEvent(
   const base64 = Buffer.from(input.imageBytes).toString('base64');
 
   const attempt = async (timeoutMs: number) =>
-    withTimeout(
-      client().messages.create({
-        model: VISION_MODEL,
-        max_tokens: 1024,
-        system: VISION_SYSTEM_PROMPT,
-        tools: [MISSION_EVENT_TOOL as never],
-        tool_choice: { type: 'tool', name: MISSION_EVENT_TOOL.name },
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: { type: 'base64', media_type: input.mimeType, data: base64 },
-              },
-              { type: 'text', text: userPrompt },
-            ],
-          },
-        ],
-      }),
-      timeoutMs
-    );
+    withTimeout(callOpenAIVision({ base64, mimeType: input.mimeType, userPrompt }), timeoutMs);
 
-  let response: Awaited<ReturnType<Anthropic['messages']['create']>>;
+  let parsedJson: unknown;
   try {
-    response = await attempt(FIRST_ATTEMPT_TIMEOUT_MS);
+    parsedJson = await attempt(FIRST_ATTEMPT_TIMEOUT_MS);
   } catch (e1) {
     try {
-      response = await attempt(RETRY_TIMEOUT_MS);
+      parsedJson = await attempt(RETRY_TIMEOUT_MS);
     } catch (e2) {
       const status = isTimeout(e2) ? 504 : 502;
       return {
@@ -98,22 +62,7 @@ export async function parsePhotoToMissionEvent(
     }
   }
 
-  const toolBlock = response.content.find((b) => b.type === 'tool_use');
-  if (!toolBlock || toolBlock.type !== 'tool_use') {
-    return {
-      ok: false,
-      status: 422,
-      error: 'model_did_not_call_tool',
-      lowConfidenceEvent: placeholderEvent({
-        capturedAt,
-        submitterId: input.submitterId,
-        locationHint: input.locationHint,
-        reason: 'Model returned no structured tool call.',
-      }),
-    };
-  }
-
-  const validated = validateVisionParseResult(toolBlock.input);
+  const validated = validateVisionParseResult(parsedJson);
   if (!validated.ok) {
     return {
       ok: false,
@@ -139,6 +88,108 @@ export async function parsePhotoToMissionEvent(
   };
 }
 
+type ChatCompletionResponse = {
+  choices?: Array<{
+    message?: {
+      content?: unknown;
+      tool_calls?: Array<{
+        function?: {
+          name?: string;
+          arguments?: string;
+        };
+      }>;
+    };
+  }>;
+};
+
+async function callOpenAIVision(input: {
+  base64: string;
+  mimeType: ParsePhotoInput['mimeType'];
+  userPrompt: string;
+}): Promise<unknown> {
+  const apiKey = process.env.REAL_OPENAI_KEY ?? process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('missing_openai_api_key');
+  }
+
+  const res = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: VISION_MODEL,
+      temperature: 0.1,
+      max_tokens: 1024,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `${VISION_SYSTEM_PROMPT}
+
+Return exactly one JSON object matching this JSON Schema. Do not wrap it in markdown and do not include prose:
+${JSON.stringify(MISSION_EVENT_TOOL.input_schema)}`,
+        },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: input.userPrompt },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${input.mimeType};base64,${input.base64}`,
+              },
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`openai_vision_http_${res.status}:${body.slice(0, 300)}`);
+  }
+
+  const json = (await res.json()) as ChatCompletionResponse;
+  return extractStructuredOutput(json);
+}
+
+function extractStructuredOutput(response: ChatCompletionResponse): unknown {
+  const message = response.choices?.[0]?.message;
+  const toolCall = message?.tool_calls?.find(
+    (call) => call.function?.name === MISSION_EVENT_TOOL.name
+  );
+  if (toolCall?.function?.arguments) {
+    return parseJsonish(toolCall.function.arguments);
+  }
+
+  if (typeof message?.content === 'string') {
+    return parseJsonish(message.content);
+  }
+
+  if (Array.isArray(message?.content)) {
+    const text = message.content
+      .map((part) => {
+        if (!part || typeof part !== 'object') return '';
+        const p = part as Record<string, unknown>;
+        return typeof p.text === 'string' ? p.text : '';
+      })
+      .join('\n')
+      .trim();
+    if (text) return parseJsonish(text);
+  }
+
+  throw new Error('openai_vision_no_structured_output');
+}
+
+function parseJsonish(raw: string): unknown {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return JSON.parse(fenced ? fenced[1] : trimmed);
+}
+
 export function mapToMissionEvent(
   parse: VisionParseResult,
   meta: { capturedAt: string; submitterId?: string; locationHint?: string }
@@ -160,8 +211,7 @@ export function mapToMissionEvent(
     source: {
       type: 'mobile_capture',
       name: meta.submitterId ? `mobile:${meta.submitterId}` : 'mobile:anonymous',
-      reliability:
-        parse.confidence >= 0.7 ? 'high' : parse.confidence >= 0.4 ? 'medium' : 'low',
+      reliability: parse.confidence >= 0.7 ? 'high' : parse.confidence >= 0.4 ? 'medium' : 'low',
     },
     eventType: parse.observationCategory,
     summary,
@@ -225,9 +275,7 @@ function placeholderEvent(meta: {
 async function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return await Promise.race([
     p,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('vision_timeout')), ms)
-    ),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('vision_timeout')), ms)),
   ]);
 }
 

@@ -3,6 +3,7 @@ import { parsePhotoToMissionEvent } from '@/lib/mission/vision-parser';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp']);

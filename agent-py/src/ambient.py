@@ -17,7 +17,8 @@ Full pipeline (per event):
        urgency==low  OR  confidence<0.3  => DROP immediately
        everything else                   => LLM classifier call
 
-  4. LLM classifier (borderline only) — openai/gpt-4.1-mini, ~300-token budget.
+  4. LLM classifier (borderline only) — standard LiveKit Inference model,
+     ~300-token budget.
      Estimated <5% of events reach this stage under normal feed conditions.
 
   5. Anti-chatter controls:
@@ -45,6 +46,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -70,6 +72,8 @@ QUIET_GAP_S: float = 2.5
 ADJACENT_CONFIDENCE_THRESHOLD: float = 0.7
 
 logger = logging.getLogger("ambient")
+
+DEFAULT_CLASSIFIER_MODEL = "openai/gpt-4.1-mini"
 
 # ---------------------------------------------------------------------------
 # Data model
@@ -391,7 +395,7 @@ async def llm_classify(
 ) -> GateDecision:
     """Call the haiku-class LLM to classify a borderline event.
 
-    Uses openai/gpt-4.1-mini via LiveKit Inference. Returns a GateDecision.
+    Uses the standard LiveKit Inference classifier model. Returns a GateDecision.
     On any failure (timeout, parse error) defaults to STASH so we never drop
     a potentially important event silently.
     """
@@ -418,7 +422,12 @@ async def llm_classify(
     )
 
     try:
-        llm_client = inference.LLM(model="openai/gpt-4.1-mini")
+        llm_client = inference.LLM(
+            model=os.getenv(
+                "LIVEKIT_CLASSIFIER_MODEL_ID",
+                os.getenv("LIVEKIT_LLM_MODEL_ID", DEFAULT_CLASSIFIER_MODEL),
+            ),
+        )
         async with llm_client:
             llm_client.chat_ctx_copy() if hasattr(llm_client, "chat_ctx_copy") else None
             # Build a minimal chat context for the classifier

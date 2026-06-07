@@ -21,7 +21,7 @@ from livekit.agents import (
     inference,
     room_io,
 )
-from livekit.plugins import ai_coustics, openai, silero
+from livekit.plugins import ai_coustics, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 from moss import DocumentInfo, MossClient, QueryOptions
 
@@ -45,12 +45,17 @@ EVENTS_INDEX = os.getenv("MOSS_EVENTS_INDEX_NAME", "events")
 # running `uv run src/agent.py console`). The frontend provides a real
 # per-browser user_id via agent dispatch metadata.
 DEFAULT_USER_ID = "user_1"
+DEFAULT_AGENT_LLM_MODEL = "openai/gpt-4.1-mini"
 
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace(
         "+00:00", "Z"
     )
+
+
+def _agent_llm_model() -> str:
+    return os.getenv("LIVEKIT_LLM_MODEL_ID", DEFAULT_AGENT_LLM_MODEL)
 
 
 class Assistant(Agent):
@@ -64,14 +69,10 @@ class Assistant(Agent):
         soldier: SoldierProfile | None = None,
     ) -> None:
         super().__init__(
-            # The LLM (the agent's brain) routes through the TrueFoundry AI
-            # Gateway using LiveKit's OpenAI-compatible plugin. STT/TTS are
-            # configured on the AgentSession below.
-            llm=openai.LLM(
-                model=os.getenv("TRUEFOUNDRY_MODEL_ID", "openai-main/gpt-4o"),
-                api_key=os.getenv("OPENAI_API_KEY"),
-                base_url=os.getenv("TRUEFOUNDRY_BASE_URL"),
-                temperature=0.7,
+            # The LLM (the agent's brain) uses the standard LiveKit Inference
+            # path. STT/TTS are configured on the AgentSession below.
+            llm=inference.LLM(
+                model=_agent_llm_model(),
             ),
             instructions=textwrap.dedent(
                 """\

@@ -30,6 +30,9 @@ LIVEKIT_API_KEY=...
 LIVEKIT_API_SECRET=...
 LIVEKIT_ROOM_NAME=mission_bay_demo_room
 
+LIVEKIT_LLM_MODEL_ID=openai/gpt-4.1-mini
+LIVEKIT_CLASSIFIER_MODEL_ID=openai/gpt-4.1-mini
+
 MOSS_PROJECT_ID=...
 MOSS_PROJECT_KEY=...
 MOSS_INDEX_NAME=knowledge
@@ -55,8 +58,10 @@ LIVEKIT_API_SECRET=...
 LIVEKIT_ROOM_NAME=mission_bay_demo_room
 AGENT_NAME=agent-py
 
-ANTHROPIC_API_KEY=sk-ant-...
-VISION_MODEL=claude-sonnet-4-6
+OPENAI_API_KEY=...
+REAL_OPENAI_KEY=... # optional, if OPENAI_API_KEY is reserved for another gateway
+OPENAI_VISION_MODEL=gpt-4o-mini
+VISION_MODEL=gpt-4o-mini
 
 MOSS_PROJECT_ID=...
 MOSS_PROJECT_KEY=...
@@ -105,7 +110,7 @@ Expected log lines once everything is up:
 [feeds]       biosensor_mock: 2 new events
 ```
 
-If you don't have Moss/Anthropic credentials yet and just want to see the UI: `pnpm dev:agent-py` + `pnpm dev:frontend` runs just the agent + UI, no feeds.
+If you don't have Moss/OpenAI credentials yet and just want to see the UI: `pnpm dev:agent-py` + `pnpm dev:frontend` runs just the agent + UI, no feeds.
 
 ## Test 1 — Two phones, two soldiers
 
@@ -210,5 +215,7 @@ While Bravo-3 is mid-sentence on Phone A, trigger an event (Test 3 curl). The ag
 - **Agent crashes on first run with `model_q8.onnx` missing**: `pnpm agent:py:download-files`
 - **Feed worker logs `Ingest rejected event: HTTP 401`**: `MISSION_INGEST_SECRET` differs between agent-py and frontend `.env.local`. Set them to the same string.
 - **Feed worker logs `Ingest rejected event: HTTP 422`**: the `MissionEvent` shape changed; update the feed normalizer to match the new Zod schema in `frontend/app/api/mission/ingest/route.ts`.
-- **Vision parser returns 502**: `ANTHROPIC_API_KEY` missing or invalid.
+- **Vision parser returns 502**: OpenAI vision credentials are missing or invalid
+  in `frontend/.env.local`. Set `OPENAI_API_KEY` and a vision-capable model such
+  as `OPENAI_VISION_MODEL=gpt-4o-mini`.
 - **Agent never speaks proactively**: confirm `pnpm dev` shows all three processes running and that the feed worker logs "N new events" lines. The agent listens on the room data channel; if feeds aren't pushing, the agent has nothing to surface.
